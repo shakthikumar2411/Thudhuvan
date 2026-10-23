@@ -1,0 +1,12 @@
+import {Link} from 'react-router-dom';import {useFetch} from '../api.js';import {PageHead,Card,Stat,Badge,Bar,Spinner,ErrorBox,ago} from '../ui.jsx';
+export default function Dashboard(){const {data:d,loading,error,reload}=useFetch('/dashboard',{every:10000});
+ if(loading&&!d)return <Spinner/>;if(error&&!d)return <ErrorBox msg={error} retry={reload}/>;
+ const sender=d.senders.find(s=>s.status==='active');
+ const steps=[[!!sender,'Connect your WhatsApp number','Link your Meta WhatsApp Business number.','/settings'],[d.contacts.total>0,'Add contacts','Import a CSV/Excel file or add people one by one.','/contacts'],
+  [d.contacts.eligible>0,'Record marketing consent','Only contacts who opted in can receive campaigns.','/contacts'],[d.templates.approved>0,'Sync approved templates','Marketing messages need a Meta-approved template.','/templates'],[d.campaigns.total>0,'Send your first campaign','Preview who will receive it, then confirm.','/campaigns/new']];
+ return <><PageHead title="Dashboard" sub="Your WhatsApp activity at a glance"><Link className="btn" to="/campaigns/new">New campaign</Link></PageHead>
+  {d.senders.some(s=>s.status!=='active')&&<div className="errbox">A WhatsApp sender needs attention. <Link to="/settings">Review senders</Link></div>}
+  <div className="stats"><Stat n={d.contacts.total} l="Contacts"/><Stat n={d.contacts.eligible} l="Can receive marketing" tone="good"/><Stat n={d.contacts.opted_out} l="Opted out"/><Stat n={d.campaigns.active} l="Campaigns in progress"/><Stat n={d.unread} l="Unread messages" tone={d.unread?'bad':''}/></div>
+  {steps.some(s=>!s[0])&&<Card title="Get started">{steps.map(([ok,t,s,to])=><div className="check" key={t}><div className={'dot '+(ok?'y':'')}>{ok?'✓':''}</div><div><b>{ok?t:<Link to={to}>{t}</Link>}</b><div className="muted">{s}</div></div></div>)}</Card>}
+  <Card title="Recent campaigns" right={<Link to="/campaigns">View all</Link>} pad={false}>{d.recent.length?<div className="tw"><table><thead><tr><th>Name</th><th>Status</th><th>Delivered</th><th>Created</th></tr></thead><tbody>
+   {d.recent.map(c=><tr key={c.id}><td><Link to={'/campaigns/'+c.id}>{c.name}</Link></td><td><Badge s={c.status}/></td><td style={{minWidth:150}}><Bar v={c.delivered} max={c.total}/> <small className="muted">{c.delivered}/{c.total}</small></td><td className="muted">{ago(c.created_at)}</td></tr>)}</tbody></table></div>:<div className="empty muted">No campaigns yet.</div>}</Card></>}
